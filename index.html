@@ -275,7 +275,7 @@ function renderCats(){
         row.innerHTML = `
           <span class="item-name">${esc(item)}</span>
           <input type="text" class="qty-input" placeholder="Cant." value="${esc(d.cantidad)}"
-            oninput="setField('${esc(cat.nombre)}','${esc(item)}','cantidad',this.value)" inputmode="decimal"/>
+            oninput="setField('${esc(cat.nombre)}','${esc(item)}','cantidad',this.value)" inputmode="text"/>
           <div class="status-btns">
             <button class="status-btn ${sVerde}" title="Verde — Stock óptimo"
               onclick="setStatus('${esc(cat.nombre)}','${esc(item)}','verde')">🟢</button>
@@ -309,6 +309,9 @@ function updateBadges(){
 function setField(cat, item, campo, valor){
   const k = key(cat,item);
   if(!datos[k]) datos[k]={cantidad:'',status:'verde',pedir:false};
+  if(campo === 'cantidad'){
+    valor = sanitizeCantidad(valor);
+  }
   datos[k][campo] = valor;
   updateBadges();
   guardar();
