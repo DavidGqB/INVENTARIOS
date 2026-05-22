@@ -229,6 +229,7 @@ document.getElementById('turno').addEventListener('change', guardar);
 
 // ─── RENDER ──────────────────────────────────────────────
 function renderCats(){
+  if(typeof flushInputs === 'function') flushInputs();
   const busqueda = document.getElementById('search').value.toLowerCase();
   const container = document.getElementById('cats-container');
   container.innerHTML = '';
@@ -275,6 +276,7 @@ function renderCats(){
         row.innerHTML = `
           <span class="item-name">${esc(item)}</span>
           <input type="text" class="qty-input" placeholder="Cant." value="${esc(d.cantidad)}"
+            data-key="${esc(key(cat.nombre,item))}"
             oninput="setField('${esc(cat.nombre)}','${esc(item)}','cantidad',this.value)" inputmode="text"/>
           <div class="status-btns">
             <button class="status-btn ${sVerde}" title="Verde — Stock óptimo"
@@ -305,32 +307,58 @@ function updateBadges(){
   document.getElementById('badge-yellow').textContent = '🟡 ' + vals.filter(d=>d.status==='amarillo').length;
 }
 
+// Save all typed quantities from DOM into datos before any re-render
+function flushInputs(){
+  document.querySelectorAll('.qty-input').forEach(input => {
+    const k = input.dataset.key;
+    if(k && datos[k] !== undefined){
+      datos[k].cantidad = input.value;
+    }
+  });
+}
+
 // ─── FIELD UPDATES ───────────────────────────────────────
 function setField(cat, item, campo, valor){
   const k = key(cat,item);
   if(!datos[k]) datos[k]={cantidad:'',status:'verde',pedir:false};
-  if(campo === 'cantidad'){
-    valor = sanitizeCantidad(valor);
-  }
   datos[k][campo] = valor;
   updateBadges();
   guardar();
 }
 
 function setStatus(cat, item, status){
+  flushInputs(); // save all quantities first
   const k = key(cat,item);
   if(!datos[k]) datos[k]={cantidad:'',status:'verde',pedir:false};
   datos[k].status = status;
   guardar();
-  renderCats();
+  // Only update the status buttons for this row, no full re-render
+  const row = document.getElementById('row_' + k);
+  if(row){
+    row.querySelectorAll('.status-btn').forEach(btn => {
+      btn.className = 'status-btn';
+      if(btn.textContent==='🟢' && status==='verde')    btn.classList.add('active-verde');
+      if(btn.textContent==='🟡' && status==='amarillo') btn.classList.add('active-amarillo');
+      if(btn.textContent==='🔴' && status==='rojo')     btn.classList.add('active-rojo');
+    });
+  }
+  updateBadges();
 }
 
 function togglePedir(cat, item){
+  flushInputs(); // save all quantities first
   const k = key(cat,item);
   if(!datos[k]) datos[k]={cantidad:'',status:'verde',pedir:false};
   datos[k].pedir = !datos[k].pedir;
   guardar();
-  renderCats();
+  // Only update the PEDIR button for this row, no full re-render
+  const row = document.getElementById('row_' + k);
+  if(row){
+    const btn = row.querySelector('.btn-pedir');
+    if(btn){
+      btn.className = 'btn-pedir' + (datos[k].pedir ? ' active' : '');
+    }
+  }
 }
 
 // ─── GENERATE ────────────────────────────────────────────
